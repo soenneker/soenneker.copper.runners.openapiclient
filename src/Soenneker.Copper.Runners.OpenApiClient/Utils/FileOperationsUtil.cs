@@ -86,10 +86,25 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
     private static async ValueTask ConvertPostmanCollection(string collectionPath, string outputPath, CancellationToken cancellationToken)
     {
         string converterDirectory = Path.Combine(AppContext.BaseDirectory, "Converter");
-        string npm = OperatingSystem.IsWindows() ? "npm.cmd" : "npm";
+        string npm = OperatingSystem.IsWindows() ? ResolveFromPath("npm.cmd") : "npm";
 
         await RunProcess(npm, ["ci", "--prefix", converterDirectory, "--no-audit", "--no-fund"], cancellationToken);
         await RunProcess("node", [Path.Combine(converterDirectory, "convert-postman.mjs"), collectionPath, outputPath], cancellationToken);
+    }
+
+    private static string ResolveFromPath(string fileName)
+    {
+        string? path = Environment.GetEnvironmentVariable("PATH");
+
+        foreach (string directory in (path ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            string candidate = Path.Combine(directory, fileName);
+
+            if (File.Exists(candidate))
+                return candidate;
+        }
+
+        throw new FileNotFoundException($"Could not locate {fileName} on PATH.");
     }
 
     private static async ValueTask RunProcess(string fileName, IEnumerable<string> arguments, CancellationToken cancellationToken)
