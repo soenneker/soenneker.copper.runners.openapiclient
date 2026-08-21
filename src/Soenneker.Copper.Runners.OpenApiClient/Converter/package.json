@@ -1,6 +1,6 @@
 {
   "private": true,
   "dependencies": {
-    "@scalar/postman-to-openapi": "0.7.15"
+    "@scalar/postman-to-openapi": "0.7.17"
   }
 }
