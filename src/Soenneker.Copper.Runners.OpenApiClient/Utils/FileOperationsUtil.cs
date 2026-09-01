@@ -83,16 +83,16 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
         await BuildAndPush(gitDirectory, cancellationToken).NoSync();
     }
 
-    private static async ValueTask ConvertPostmanCollection(string collectionPath, string outputPath, CancellationToken cancellationToken)
+    private async ValueTask ConvertPostmanCollection(string collectionPath, string outputPath, CancellationToken cancellationToken)
     {
         string converterDirectory = Path.Combine(AppContext.BaseDirectory, "Converter");
-        string npm = OperatingSystem.IsWindows() ? ResolveFromPath("npm.cmd") : "npm";
+        string npm = OperatingSystem.IsWindows() ? await ResolveFromPath("npm.cmd", cancellationToken).NoSync() : "npm";
 
         await RunProcess(npm, ["ci", "--prefix", converterDirectory, "--no-audit", "--no-fund"], cancellationToken);
         await RunProcess("node", [Path.Combine(converterDirectory, "convert-postman.mjs"), collectionPath, outputPath], cancellationToken);
     }
 
-    private static string ResolveFromPath(string fileName)
+    private async ValueTask<string> ResolveFromPath(string fileName, CancellationToken cancellationToken)
     {
         string? path = Environment.GetEnvironmentVariable("PATH");
 
@@ -100,7 +100,7 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
         {
             string candidate = Path.Combine(directory, fileName);
 
-            if (File.Exists(candidate))
+            if (await _fileUtil.Exists(candidate, cancellationToken).NoSync())
                 return candidate;
         }
 
