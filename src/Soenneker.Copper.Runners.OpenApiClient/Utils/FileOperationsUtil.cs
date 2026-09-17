@@ -7,7 +7,7 @@ using Soenneker.Utils.Dotnet.Abstract;
 using Soenneker.Utils.Environment;
 using System;
 using System.IO;
-using System.Linq;
+using Microsoft.OpenApi;
 using System.Threading;
 using System.Threading.Tasks;
 using Soenneker.Extensions.ValueTask;
@@ -17,11 +17,10 @@ using Soenneker.Utils.Directory.Abstract;
 using Soenneker.Utils.File.Abstract;
 using Soenneker.Utils.File.Download.Abstract;
 using System.Collections.Generic;
-using System.Diagnostics;
+using Soenneker.Postman.Converter.Abstract;
 
 namespace Soenneker.Copper.Runners.OpenApiClient.Utils;
 
-/// <inheritdoc cref="IFileOperationsUtil"/>
 public sealed class FileOperationsUtil : IFileOperationsUtil
 {
     private readonly ILogger<FileOperationsUtil> _logger;
@@ -33,8 +32,9 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
     private readonly IFileDownloadUtil _fileDownloadUtil;
     private readonly IFileUtil _fileUtil;
     private readonly IDirectoryUtil _directoryUtil;
+    private readonly IPostmanConverter _postmanConverter;
     public FileOperationsUtil(ILogger<FileOperationsUtil> logger, IConfiguration configuration, IGitUtil gitUtil, IDotnetUtil dotnetUtil,
-        IFileDownloadUtil fileDownloadUtil, IFileUtil fileUtil, IDirectoryUtil directoryUtil, IKiotaUtil kiotaUtil, IOpenApiFixer openApiFixer)
+        IFileDownloadUtil fileDownloadUtil, IFileUtil fileUtil, IDirectoryUtil directoryUtil, IKiotaUtil kiotaUtil, IOpenApiFixer openApiFixer, IPostmanConverter postmanConverter)
     {
         _logger = logger;
         _configuration = configuration;
@@ -45,6 +45,7 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
         _fileDownloadUtil = fileDownloadUtil;
         _fileUtil = fileUtil;
         _directoryUtil = directoryUtil;
+        _postmanConverter = postmanConverter;
     }
 
     public async ValueTask Process(CancellationToken cancellationToken = default)
@@ -85,74 +86,10 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
 
     private async ValueTask ConvertPostmanCollection(string collectionPath, string outputPath, CancellationToken cancellationToken)
     {
-        string converterDirectory = Path.Combine(AppContext.BaseDirectory, "Converter");
-        string npm = OperatingSystem.IsWindows() ? await ResolveFromPath("npm.cmd", cancellationToken).NoSync() : "npm";
+        OpenApiDocument document = await _postmanConverter.ConvertFile(collectionPath, cancellationToken).NoSync();
+        document.Servers = [new OpenApiServer {Url = "https://api.copper.com/developer_api/v1"}];
 
-        await RunProcess(npm, ["ci", "--prefix", converterDirectory, "--no-audit", "--no-fund"], cancellationToken);
-        await RunProcess("node", [Path.Combine(converterDirectory, "convert-postman.mjs"), collectionPath, outputPath], cancellationToken);
-    }
-
-    private async ValueTask<string> ResolveFromPath(string fileName, CancellationToken cancellationToken)
-    {
-        string? path = Environment.GetEnvironmentVariable("PATH");
-
-        foreach (string directory in (path ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            string candidate = Path.Combine(directory, fileName);
-
-            if (await _fileUtil.Exists(candidate, cancellationToken).NoSync())
-                return candidate;
-        }
-
-        throw new FileNotFoundException($"Could not locate {fileName} on PATH.");
-    }
-
-    private static async ValueTask RunProcess(string fileName, IEnumerable<string> arguments, CancellationToken cancellationToken)
-    {
-        var startInfo = new ProcessStartInfo(fileName)
-        {
-            RedirectStandardError = true,
-            RedirectStandardOutput = true,
-            UseShellExecute = false
-        };
-
-        foreach (string argument in arguments)
-            startInfo.ArgumentList.Add(argument);
-
-        using var process = new Process {StartInfo = startInfo};
-        process.Start();
-
-        Task<string> standardOutput = process.StandardOutput.ReadToEndAsync();
-        Task<string> standardError = process.StandardError.ReadToEndAsync();
-
-        try
-        {
-            await process.WaitForExitAsync(cancellationToken);
-        }
-        catch (OperationCanceledException)
-        {
-            if (!process.HasExited)
-            {
-                try
-                {
-                    process.Kill(entireProcessTree: true);
-                }
-                catch (InvalidOperationException) when (process.HasExited)
-                {
-                    // The process exited between the state check and the kill request.
-                }
-            }
-
-            await process.WaitForExitAsync(CancellationToken.None);
-            await Task.WhenAll(standardOutput, standardError);
-            throw;
-        }
-
-        string output = await standardOutput;
-        string error = await standardError;
-
-        if (process.ExitCode != 0)
-            throw new InvalidOperationException($"{fileName} failed with exit code {process.ExitCode}: {error}\n{output}");
+        await File.WriteAllTextAsync(outputPath, _postmanConverter.ToJson(document), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

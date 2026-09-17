@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Soenneker.Kiota.Util.Registrars;
 using Soenneker.Managers.Runners.Registrars;
 using Soenneker.OpenApi.Fixer.Registrars;
+using Soenneker.Postman.Converter.Registrars;
 using Soenneker.Utils.Directory.Registrars;
 using Soenneker.Utils.File.Registrars;
 using Soenneker.Copper.Runners.OpenApiClient.Utils;
@@ -39,6 +40,7 @@ public static class Startup
                 .AddFileUtilAsSingleton()
                 .AddFileDownloadUtilAsSingleton()
                 .AddOpenApiFixerAsSingleton()
+                .AddPostmanConverterAsSingleton()
                 .AddKiotaUtilAsSingleton();
 
         return services;
