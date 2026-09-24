@@ -89,7 +89,7 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
         OpenApiDocument document = await _postmanConverter.ConvertFile(collectionPath, cancellationToken).NoSync();
         document.Servers = [new OpenApiServer {Url = "https://api.copper.com/developer_api/v1"}];
 
-        await File.WriteAllTextAsync(outputPath, _postmanConverter.ToJson(document), cancellationToken).ConfigureAwait(false);
+        await _fileUtil.Write(outputPath, _postmanConverter.ToJson(document), cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
