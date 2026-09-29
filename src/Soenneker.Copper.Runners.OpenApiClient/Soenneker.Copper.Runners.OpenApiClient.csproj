@@ -30,7 +30,7 @@
         <PackageReference Include="Soenneker.Kiota.Util" Version="4.0.142" />
         <PackageReference Include="Soenneker.Managers.Runners" Version="4.0.2576" />
         <PackageReference Include="Soenneker.Postman.Converter" Version="4.0.130" />
-        <PackageReference Include="Soenneker.OpenApi.Fixer" Version="4.0.374" />
+        <PackageReference Include="Soenneker.OpenApi.Fixer" Version="4.0.375" />
         <PackageReference Include="Soenneker.Utils.File.Download" Version="4.0.1787" />
     </ItemGroup>
     <ItemGroup>
