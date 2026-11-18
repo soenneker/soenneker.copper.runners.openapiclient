@@ -113,7 +113,8 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
             if (!file.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
             {
                 await _fileUtil.Delete(file, ignoreMissing: true, log: false, cancellationToken);
-                _logger.LogInformation("Deleted file: {FilePath}", file);
+                if (_logger.IsEnabled(LogLevel.Information))
+                    _logger.LogInformation("Deleted file: {FilePath}", file);
             }
         }
 
@@ -128,7 +129,8 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
             if (dirFiles.Count == 0 && subDirs.Count == 0)
             {
                 await _directoryUtil.Delete(dir, cancellationToken);
-                _logger.LogInformation("Deleted empty directory: {DirectoryPath}", dir);
+                if (_logger.IsEnabled(LogLevel.Information))
+                    _logger.LogInformation("Deleted empty directory: {DirectoryPath}", dir);
             }
         }
     }
