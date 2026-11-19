@@ -29,7 +29,7 @@
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="11.0.0" />
         <PackageReference Include="Soenneker.Kiota.Util" Version="11.0.197" />
         <PackageReference Include="Soenneker.Managers.Runners" Version="11.0.2743" />
-        <PackageReference Include="Soenneker.Postman.Converter" Version="11.0.185" />
+        <PackageReference Include="Soenneker.Postman.Converter" Version="11.0.187" />
         <PackageReference Include="Soenneker.OpenApi.Fixer" Version="11.0.449" />
         <PackageReference Include="Soenneker.Utils.File.Download" Version="11.0.1866" />
     </ItemGroup>
